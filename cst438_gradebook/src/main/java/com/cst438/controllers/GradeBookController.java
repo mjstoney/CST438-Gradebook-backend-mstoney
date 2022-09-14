@@ -1,5 +1,6 @@
 package com.cst438.controllers;
 
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -7,11 +8,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -169,5 +172,56 @@ public class GradeBookController {
 		
 		return assignment;
 	}
-
+	
+	
+	/* As an instructor, add a new assignment for the course. The assignment has a name and a due date. */
+	@PostMapping("/assignment")
+	@Transactional
+	public void addNewAssignment (@RequestParam("assignmentName") String assignmentName, @RequestParam("dueDate") Date dueDate, @RequestParam("courseID") int courseID) {	
+		//Create new assignment object
+		Assignment assignment = new Assignment();
+		
+		// Get Course from courseReository using function argument courseID
+		Course course = courseRepository.findByCourseID(courseID);
+		//Set information, name and due date, course then save record
+		assignment.setName(assignmentName);
+		assignment.setDueDate(dueDate);
+		assignment.setCourse(course);
+		assignmentRepository.save(assignment);
+	}
+	
+	// As an Instructor, Change the name of an asssignment for my course.
+	@PutMapping("/assignment/{assignmentID}")
+	@Transactional
+	public void changeAssignmentName(@RequestParam("assignmentName") String name, @PathVariable int assignmentID) {
+		String email = "dwisneski@csumb.edu";
+		Assignment assignment = checkAssignment(assignmentID, email);
+		if (assignment == null) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+		}
+		else {
+			assignment.setName(name);
+			assignmentRepository.save(assignment);
+		}
+		
+	}
+	
+	// As an instructor, I can delete an assignment  for my course (only if there are no grades for the assignment).
+	@DeleteMapping("assignment/{assignmentID}")
+	@Transactional
+	public void deleteAssignment(@PathVariable int assignmentID) {
+		String email = "dwisneski@csumb.edu";
+		Assignment assignment = checkAssignment(assignmentID, email);
+		if (assignment == null) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+		}
+		if (assignment.getNeedsGrading() == 0 ) {
+			assignmentRepository.delete(assignment);
+		}
+		else {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+		}
+		
+	}
+	
 }
